@@ -1,0 +1,43 @@
+\begin{thebibliography}{}
+
+\bibitem [\protect \citeauthoryear {%
+\APACcitebtitle {{Academic Analytics} "What We Do"}}{%
+\APACcitebtitle {{Academic Analytics} "What We Do"}}{%
+{\protect \APACyear {{\protect \bibnodate {}}}}%
+}]{%
+AcadAn}
+\APACinsertmetastar {%
+AcadAn}%
+\APACrefbtitle {{Academic Analytics} "What We Do".} {{Academic Analytics} "what
+  we do".}
+\newblock
+\APACrefYearMonthDay{{\protect \bibnodate {}}}{}{}.
+\newblock
+\APAChowpublished {\url{http://www.academicanalytics.com/Public/WhatWeDo}}.
+\newblock
+\APACrefnote{Accessed: 2014-02-22}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Suber%
+}{%
+Suber%
+}{%
+{\protect \APACyear {2012}}%
+}]{%
+RefWorks:102}
+\APACinsertmetastar {%
+RefWorks:102}%
+\begin{APACrefauthors}%
+Suber, P.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYear{2012}.
+\newblock
+\APACrefbtitle {Open access} {Open access}.
+\newblock
+\APACaddressPublisher{Cambridge, Mass.}{MIT Press}.
+\PrintBackRefs{\CurrentBib}
+
+\end{thebibliography}
