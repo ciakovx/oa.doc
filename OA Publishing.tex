@@ -1,9 +1,14 @@
 \documentclass{article}
 \usepackage{apacite}
-\usepackage{listings}
-\usepackage{color}
 
-\definecolor{dkgreen}{rgb}{0,0.6,0}
+\usepackage{listings} % For R code
+\usepackage{color} % Layout of R code
+
+\usepackage{pgfplotstable} % Puts CSV tables in document
+\usepackage{booktabs} % Nicer layout for tables
+
+
+\definecolor{dkgreen}{rgb}{0,0.6,0} %colors for R
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \definecolor{mauve}{rgb}{0.58,0,0.82}
 
@@ -52,15 +57,13 @@ If your institution happens to subscribe to Academic Analytics (AA), this is one
 Academic Analytics is a subscription database providing metrics on publication counts, citation counts, research funding, and awards to faculty. 
 According to their homepage, "The Academic Analytics Database (AAD) includes information on over 270,000 faculty members associated with more than 9,000 Ph.D. programs and 10,000 departments at more than 385 universities in the United States and abroad" \cite{AcadAn}.
 
-
 Academic Analytics does not provide any information as to whether or not journals are open access. 
 AA does collect data on specific journals that individual faculty members publish in, as inferenced by their provision of "a \textit{numeric} tally of each faculty member’s total scholarly productivity in each of the five areas of scholarly research (journal articles, citations, books, research grants and honorific awards)" (emphasis mine); nonetheless, the micro-level data is not accessible. 
 However, AA provides publication data aggregated by academic department, through the "Department Articles Market Share" page. 
-For the purposes of the following study, I used the following three variables.                             
+For the purposes of the following study, I used only the following two variables.                             
 The variables are not explicitly defined within the table, nor could I find a codebook specifically defining these particular variables, therefore the following definitions are mine:
 \begin{itemize}
 \item Journal Name: This is the primary key for the table. It is the name of the journal in which researchers for that department have published.
-\item Discipline Articles: Number of articles published in the specified journal by UT Arlington researchers, aggregated by discipline
 \item Unit Articles: Number of articles published in the specified journal by UT Arlington researchers, aggregated by unit (i.e. department)
 \end{itemize}
 
@@ -71,7 +74,28 @@ The variables are not explicitly defined within the table, nor could I find a co
 First, we must establish the coverage of Academic Analytics journals. 
 As Scopus is a well-regarded indexing service, the extent to which the set of AA journals is accounted for in Scopus will be telling.
 Scopus provides an updated title list (http://www.elsevier.com/online-tools/scopus/content-overview), which as of February 2014 included 34,276 titles. 
-Academic Analytics provides a full list of their journals through their database.
+The vast majority of these titles are journals; the distribution of types of titles is below:
+
+\begin{center}
+\pgfplotstabletypeset[
+	col sep=comma,
+	columns/Type/.style={string type},
+	columns/Count/.style={string type},
+	columns/PercentTotal/.style={string type},
+	every head row/.style={
+		before row=\toprule,
+		after row=\midrule
+	},
+	every last row/.style={after row=\bottomrule}
+]{scopus.type.tot.csv}
+\end{center}
+
+%insert R code%
+
+
+Academic Analytics provides a full list of their journals through their database. 
+The following data is proprietary and for internal University of Texas at Arlington staff use only.
+
 
 After reading in the CSV file, it requires a bit of cleanup. First we create a vector of the title names from the Academic Analytics file, and coerce the vector to a factor. We convert it to all upper case, as some capital letter naming conventions vary 
 
