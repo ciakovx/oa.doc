@@ -1,20 +1,33 @@
 \documentclass{article}
 \usepackage{apacite}
 
-\usepackage{listings} % For R code
-\usepackage{color} % Layout of R code
+
+
 
 \usepackage{pgfplotstable} % Puts CSV tables in document
 \usepackage{booktabs} % Nicer layout for tables
 
+\usepackage{soul} % For highliting
 
-%\usepackage{float} % Helps with figures & tables
 
+\usepackage{caption}
+\DeclareCaptionFont{black}{ \color{black} }
+\DeclareCaptionFormat{listing}{
+  \centering
+  \colorbox[cmyk]{0.43, 0.35, 0.35,0.01 }{
+    \parbox{0.8\textwidth}{\hspace{15pt}#1#2#3}
+  }
+}
+\captionsetup[lstlisting]{ format=listing, labelfont=black, textfont=black, singlelinecheck=false, margin=0pt, font={footnotesize} 
+}
 
+\usepackage{color} % Layout of R code
 \definecolor{dkgreen}{rgb}{0,0.6,0} %colors for R
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{light-gray}{gray}{0.95}
 
+\usepackage{listings} % For R code
 \lstset{frame=tb,
   language=R,
   aboveskip=3mm,
@@ -28,10 +41,14 @@
   commentstyle=\color{dkgreen},
   stringstyle=\color{mauve},
   breaklines=true,
-  breakatwhitespace=true
-  tabsize=3
+  breakatwhitespace=false,
+  tabsize=3,
+  frame=lines,
+  captionpos=t,
+  backgroundcolor=\color{light-gray}
 }
 
+\usepackage{float} % Helps with figures & tables
 % Alter some LaTeX defaults for better treatment of figures:
 % From http://mintaka.sdsu.edu/GF/bibliog/latex/floats.html
     % See p.105 of "TeX Unbound" for suggested values.
@@ -89,52 +106,56 @@ According to their homepage, "The Academic Analytics Database (AAD) includes inf
 
 \subsection{Academic Analytics Journals in Scopus}
 The first need is to establish the coverage of Academic Analytics journals.
+Obviously, if Academic Analytics indexes a limited scope of journals, the data they collect on faculty publications will be of limited utility.
 As Scopus is a well-regarded indexing service, the extent to which the set of AA journals is accounted for in Scopus will be telling.
 
 Scopus is %description of Scopus
 Scopus provides an updated title list (%insert citation to http://www.elsevier.com/online-tools/scopus/content-overview), which as of February 2014 included 34,119 observations in its initial download. 
 For this particular research question, the only variables of interest are the Title variable, i.e. the title of the publication, and the Type variable, classifying the item type.
-All data requires some cleaning before it can be analyzed, and will have the following transformations applied:
+All datasets used in this study require some cleaning before they can be analyzed, and will have the following transformations applied:
 \begin{itemize}
-	\item Conversion to uppercase
-	\item Leading/trailing whitespace deleted
-	\item Duplicate entries deleted
+	\item Convert character strings to uppercase
+	\item Delete leading/trailing whitespace
+	\item Delete duplicate entries
 \end{itemize}
-This is especially important because the journal lists will be compared, and any variations in capitalization or spacing will lead to false negatives.
+The first two points are especially important because the journal lists will be matched based on the precise character string representing the journal title, and any variations in capitalization or spacing will lead to false negatives.
 \begin{figure}[ht]
 	\centering
-	\begin{lstlisting}
-	library(stringr)
-	# Clean the data: removing whitespace and converting to uppercase
-	scopus.titles <- data.frame(scopus$Title, scopus$Type) # get list of Scopus titles
-	scopus.titles$scopus.Title <- factor(scopus$Title) # convert to factor
-	scopus.titles$scopus.Title <- str_trim(scopus.titles$scopus.Title, side = "both") # trim extra spaces on doaj list
-	scopus.titles$scopus.Title <- toupper(scopus.titles$scopus.Title) # convert to upper case
-	scopus.titles$scopus.Type <- factor(scopus$Type) # convert to factor
-	scopus.titles$scopus.Type <- str_trim(scopus.titles$scopus.Type, side = "both") # # trim the whitespace (for Book Series)
-	scopus.titles$scopus.Type <- toupper(scopus.titles$scopus.Type) # convert to upper case
-	dupe.c <- duplicated(scopus.titles$scopus.Title) # logical vector of duplicates
-	scopus.list <- scopus.titles[!dupe.c,]
-	\end{lstlisting}
+	\caption{Clean Scopus data}
 	\footnotesize{
 		Create a dataframe \textbf{scopus.titles} including only the Title and Type variables.
-		For each variable, remove whitespace using the \textit{stringr} package, and \textit{toupper} to convert to uppercase.
-		Use \textit{duplicated} to create a logical vector \textbf{dupe.c} (YES/NO) of duplicated entries, and subset the \textbf{scopus.titles} dataframe using this vector to return the full set of titles.
+		For each variable, remove whitespace using the \textit{stringr} package, and call \textit{toupper} to convert to uppercase.
+		Use \textit{duplicated} to create a logical vector \textbf{dupe} (YES/NO) of duplicated entries, and subset the \textbf{scopus.titles} dataframe using this vector to return the full set of titles.
 			}
-	\caption{Clean Scopus Titles}
+	\begin{lstlisting}
+	clean.scopus <- function(scopusdata) {
+	  # Get a list of all journals indexed by Scopus. 
+	  # 
+	  # Arg: The raw Scopus journal data
+	  # 
+	  # Returns: A dataframe of Scopus journals and types, capitalized and with duplicates eliminated
+	  
+	  scopus.titles <- data.frame("Title"=str_trim(factor(toupper(scopusdata$Title)), side = "both"), "Type"=str_trim(factor(toupper(scopusdata$Type)), side = "both")) # get list of Scopus titles
+	  dupe <- duplicated(scopus.titles$Title) # logical vector of duplicates
+	  scopus.list <- scopus.titles[!dupe,] # Get all values that are not duplicated
+	  scopus.list$Title <- as.character(scopus.list$Title) # Convert Title from factor to character
+	  return(scopus.list)
+	}
+	scopus.list <- clean.scopus(scopus)
+\end{lstlisting}
 \end{figure}
-Cleaning the data reveals 156 duplicates, leaving 34,119 unique titles. 
-This can then be tabulated to give us a count of item types in the Scopus data.
+
+Cleaning the Scopus data (Figure 1) reveals 156 duplicates, leaving 34,119 unique titles. 
+This can then be tabulated (Figure 2) to give us a count of item types in the Scopus data (Table 1).
 \begin{figure}[htp]
 	\centering
-	\begin{lstlisting}
-	scopus.type.table <- as.data.frame(table(scopus.list$scopus.Type)) # Get the Freq for Type
-	names(scopus.type.table) <- c("Type", "Count")
-	\end{lstlisting}
+	\caption{Tabulate Scopus types}
 	\footnotesize{
 		Create a dataframe \textbf{scopus.type.table} of the counts of each type of publication and rename the variable headings.
-			}
-	\caption{Tabulate Scopus types}
+			}\begin{lstlisting}
+	scopus.type.table <- as.data.frame(table(scopus.list$Type)) # Get the Freq for Type
+	names(scopus.type.table) <- c("Type", "Count")
+	\end{lstlisting}	
 \end{figure}
 
 The vast majority (93\%) of these titles are journals; the distribution of types of titles is in Table 1:
@@ -153,76 +174,129 @@ The vast majority (93\%) of these titles are journals; the distribution of types
 	\caption{Content in Scopus}
 \end{table}
 
-Academic Analytics users can download a full list of publications that they index. 
-Unfortunately, their data is proprietary and therefore this information is the use of University of Texas at Arlington employeess. 
+Academic Analytics subscribers can download a full list of publications that the organization indexes. 
+Unfortunately, their data is proprietary; therefore this information is solely for use by University of Texas at Arlington employeess. 
+
 The data comes in CSV format, with 218,469 observations of two variables: journal title and subject discipline.
-This data does not use journal title as a primary key, and many journals are classified in more than one disciplines; therefore it must be cleaned to remove duplicate entries, and it must be converted to uppercase to make intersection matching easier.
-This is done with the same basic code as for the Scopus data above, although for only the journal variable:
+The primary key in this table is the combination of title and discipline; many journals are classified in more than one discipline, therefore the data must be cleaned to remove duplicate entries. 
+It then must be converted to uppercase to make intersection matching more accurate.
+This is done with the same basic commands as in the cleaning function already described  (Figure 3).
 \begin{figure}[htp]
 	\centering
-	\begin{lstlisting}
-	doaj.titles <- data.frame(doaj$Title) # get list of DOAJ titles
-	aa.titles <- data.frame(aa.journals$AAD.2011.Journal.List) # get list of AA titles
-	aa.titles <- factor(aa.titles$aa.journals.AAD.2011.Journal.List) # convert to factor
-	aa.titles <- str_trim(aa.titles, side = "both") # trim extra spaces on aa list
-	aa.titles <- toupper(aa.titles) # convert to upper case
-	dupe.b <- duplicated(aa.titles) # logical vector of duplicates
-	aa.list <- aa.titles[!dupe.b] # return all AA journals as characters, in caps, without duplicates
-	aa.list.dupes <- aa.titles[dupe.b]
-	\end{lstlisting}
+	\caption{Clean Academic Analytics Titles}
 	\footnotesize{
-		Apply the same functions as the above Clean Scopus analysis, only return a character vector \textbf{aa.list} rather than a dataframe. 
+		Clean the AA data and return character vector \textbf{aa.journals} consisting of journal titles in Academic Analytics. 
 			}
-	\caption{Clean Scopus Titles}
+	\begin{lstlisting}
+	clean.aa <- function(aadata) {
+	  # Get a list of all journals indexed by Academic Analytics. 
+	  # 
+	  # Arg: The raw Academic Analytics journal data
+	  # 
+	  # Returns: A character vector of 14,586 Academic Analytics data, capitalized and with duplicates eliminated
+	  
+	  aa.titles <- data.frame("Title"=str_trim(factor(toupper(aadata$AAD.2011.Journal.List)))) # get list of AA titles
+	  dupe <- duplicated(aa.titles) # logical vector of duplicates
+	  aa.list <- aa.titles[!dupe,] # return all AA journals as characters, in caps, without duplicates (14,586)
+	  aa.list <- as.character(aa.list) # convert from factor to character string
+	  return(aa.list)
+	}
+	aa.list <- clean.aa(aa.journals)
+	\end{lstlisting}
 \end{figure}
 
 This returns a total of 14,586 unique titles.
-
 Of those, how many are accounted for in 34,119 Scopus entries?
-Academic Analytics only provides data on academic journals, so it will likely only match entries from the 31,719 journals indexed by Scopus, but the full scopus list will be used nonetheless.
-The answer is easy to determine with a simple intersect function in R:
+Academic Analytics only provides data on academic journals, so it will likely only match entries from the set of 31,719 journals indexed by Scopus, and not book series, conference proceedings, and trade journals.
+Nonetheless, the simple intersect function will scan the full scopus list.
 \begin{lstlisting}
-	aa.scopus <- intersect(aa.list, scopus.list$scopus.Title)
+	aa.scopus <- intersect(scopus.list$Title, aa.list))\footnote{Why is there a need to specify the variable (Title) for the scopus data, but not the AA data? Because scopus.list is a dataframe of two variables: Title and Type, whereas aa.list is a character vector}
 \end{lstlisting}
 
-There are 10,809 publications indexed by Academic Analytics that also appear in the Scopus data. 
-AA journals account for approximately one third (31.6\%) of journals indexed by Scopus journals, and if trade journals are included, AA journals account for 33.3\%.
-AA journal selection criteria is not available, therefore comment or observation is not possible.
-Because there is no authoritative data on UT Arlington publications aside from Academic Analytics, it is also impossible to make substantive commentary as to how well AA data covers UT Arlington publications.
+10,809 publications appear in both Academic Analytics and Scopus. 
+Therefore, Academic Analytics account for at maximum approximately one third of journals indexed by Scopus (34.1\% if only Scopus "Journals" are included in the denominator, and 33.3\% if "Trade Journals" are included in addition to "Journals").
+AA journal selection criteria is not available, therefore in-depth comment or observation is not possible; suffice it to say that if Academic Analytics indexed a larger proportion of journals, there is a higher probability that their citation data would be enhanced.
+Because there is no substantive dataset accounting for UT Arlington publications other than Academic Analytics, it is also impossible to make substantive commentary as to how well AA data covers UT Arlington publications from a comparative perspective.
 
 \subsection{Directory of Open Access Journals in Academic Analytics}
-The overall purpose of the current study is to determine the extent of publication by UT Arlington researchers in open access journals.
-The Directory of Open Access Journals provides the broadest scope of open access journal publications.
+The Directory of Open Access Journals provides a list of existing open access journals.
 DOAJ is %describe its purpose here
-How well are Directory of Open Access Journals covered in Academic Analytics?
-This we find using the same procedure as above.
+First, to establish how well Directory of Open Access Journals are covered in Academic Analytics, an intersection can be run in the same fashion as the comparison of AA and Scopus journals. 
 The DOAJ data can be freely downloaded on the Web from %cite
 The initial dataset includes 9,804 observations and a number of variables, including ISSN, % variables.
-The only pertinent variable for this study is the journal name.
+The only pertinent variables for this study are the journal name, the alternative journal name, and the publisher.
 
 First, the DOAJ data must be cleaned, using the same functions already described.
+This is especially important for the DOAJ data, as a high number of name values include trailing whitespace. 
+Two lists must be created: one for the main title, and another for the alternative title, in case Academic Analytics uses that title in its index (this is, indeed, true for one journal in the current study.)
+The publisher is also included.
+This can be used in later analysis to conduct analysis on publishers indexed by DOAJ, and also to determine publisher overlap between DOAJ and AA lists.
 \begin{figure}[htpb]
 	\centering
+	\caption{Clean the DOAJ Main Titles}
+	\footnotesize{
+		Clean the DOAJ data and return dataframe \textbf{doaj.list} consisting of the character vector "Title" and the factor vector "Publisher."
+			}
 	\begin{lstlisting}
-	doaj.titles <- data.frame(doaj$Title) # get list of DOAJ titles
-	doaj.titles <- factor(doaj.titles$doaj.Title) # convert to factor
-	doaj.titles <- str_trim(doaj.titles, side = "both") # trim extra spaces on doaj list
-	doaj.titles <- toupper(doaj.titles) # convert to upper case
-	dupe.a <- duplicated(doaj.titles) # logical vector of duplicates
-	doaj.list <- doaj.titles[!dupe.a] # return all DOAJ titles as characters, in caps, without duplicates (9,786)
+	clean.doaj.main <- function(doajdata) {
+	  # Get a list of all DOAJ journals and their publishers with whitespace trimmed
+	  #
+	  # Arg: The raw DOAJ journal data
+	  #
+	  # Returns: A dataframe of DOAJ journals, capitalized, and their publishers, capitalized, with duplicates eliminated
+	  
+	  doaj.titles <- data.frame("Title"=str_trim(factor(toupper(doajdata$Title)), side = "both"), "Publisher"=str_trim(factor(toupper(doajdata$Publisher)), side = "both")) # get list of DOAJ titles
+	  dupe <- duplicated(doaj.titles) # logical vector of duplicates
+	  doaj.list <- doaj.titles[!dupe,] # return all DOAJ titles as characters, in caps, without duplicates (9,786)
+	  doaj.list$Title <- as.character(doaj.list$Title) # Convert Title variable to character from factor
+	  return(doaj.list)
+	}
+	doaj.list.trim <- clean.doaj.main(doaj)
+	\end{lstlisting}
+	
+\end{figure}
+
+\begin{figure}[hb]
+	\centering
+	\caption{Clean the DOAJ Main Titles}
+	\begin{lstlisting}
+	clean.doaj.alt <- function(doajdata) {
+	  # Get a list of all alternative DOAJ journal names and their publishers with spaces deleted.
+	  # Because the list is so small, we can safely delete all spaces and any ramifications in visualization are easily fixed
+	  #
+	  # Arg: The raw DOAJ journal data
+	  #
+	  # Returns: A dataframe of alternative DOAJ journal titles, capitalized & trimmed, and their publishers, capitalized & trimmed, with duplicates eliminated
+	  
+	  doaj.alt.titles <- doaj[complete.cases(doajdata$Title.Alternative),] #There are over 2,000 here, but running an intersect with AA only finds 30. Unfortunately, none of these are in this analysis.
+	  doaj.alt.titles <- data.frame("Title"=str_replace_all(factor(toupper(doaj.alt.titles$Title.Alternative)), pattern = " ", repl = ""), "Publisher"=str_trim(factor(toupper(doaj.alt.titles$Publisher)), side = "both")) # get list of DOAJ titles
+	  dupe <- duplicated(doaj.alt.titles) # logical vector of duplicates
+	  doaj.alt.list <- doaj.alt.titles[!dupe,] # return all DOAJ titles as characters, in caps, without duplicates (9,786)
+	  doaj.alt.list$Title <- as.character(doaj.alt.list$Title) # Convert Title variable to character from factor
+	  return(doaj.alt.list)
+	}
+	doaj.alt.list.repl <- clean.doaj.alt(doaj)
 	\end{lstlisting}
 	\footnotesize{
 		Clean the DOAJ data and return character vector \textit{doaj.list}.
 			}
-	\caption{Delete Leading/Trailing Whitespace \& Capitalize DOAJ Titles}
 \end{figure}
-After removing 18 duplicates, there are 9,786 unique titles in the DOAJ.
 
-There is a problem with running an intersection between the two lists at this stage.
-For journals with punctuation, spacing conventions vary (both within the DOAJ list, and between the DOAJ and AA list).
-This problem can be easily solved if we are willing to sacrifice the aesthetic of the titles: \textit{all } spaces can be deleted in both DOAJ and AA  lists (by replacing spaces with nothing):
+
+
+
+
+After removing 18 duplicates, there are 9,786 unique titles in the DOAJ main title list, and 2,375 unique titles in the alternative title list.
+
+There is a problem with running an intersection between the Academic Analytics data and the DOAJ data at this stage.
+For some journals with punctuation in their titles, spacing conventions vary, both within the DOAJ list, and between the DOAJ and AA list.
+For instance, on the Academic Analytics list, this journal appears as: {\large \begin{verbatim}Culture Unbound: Journal of Current Cultural Research\end{verbatim}} whereas DOAJ indexes it with an empty space after the main title: {\large \begin{verbatim}Culture Unbound : Journal of Current Cultural Research\end{verbatim}}
+While this may seem a small issue, if a faculty member were to have published in this journal, it would not be matched in the analysis, resulting in a false negative.
+
+The problem can be easily solved if we are willing to sacrifice the aesthetic of the titles: \emph{all} spaces can be deleted in both DOAJ and AA  lists (by replacing spaces with nothing and then comparing the titles, Figure 6):
 \begin{figure}[htpb]
 	\centering
+	\caption{Intersection of Trimmed DOAJ \& AA Lists}
 	\begin{lstlisting}
 	doaj.repl <- str_replace_all(doaj.list, pattern = " ", repl="") # delete ALL spaces on doaj list
 	aa.repl <- str_replace_all(aa.list, pattern = " ", repl="") # delete ALL spaces on aa list
@@ -232,44 +306,76 @@ This problem can be easily solved if we are willing to sacrifice the aesthetic o
 		Create dataframe \textbf{doaj.repl} using \textit{str\_replace\_all} (from the \textit{stringr} package) to delete all spaces in both the AA and the DOAJ journal lists (specifically, replacing spaces with nothing). 
 		Return the intersection of the lists to chaqracter vector \textbf{doaj.aa.repl}.
 			}
-	\caption{Intersection of Trimmed DOAJ \& AA Lists}
 \end{figure}
-This finds 1,226 titles, which will be the maximum number of journals the two lists have in common, based strictly on character for character matching alone.
-Based on this figure, roughly 12.5\% of DOAJ journals are indexed in Academic Analytics.
+This identifies 1,226 matching titles, which is the maximum number of journals the two lists have in common for this study, based strictly on character-for-character matching alone.
+Based on this figure, Academic Analytics indexes roughly 12.5\% of DOAJ journals.
+Just as with the Scopus data, since Academic Analytics selection criteria is not divulged, a complete review of why the number is so low is not possible here.
 %insert commentary here about that. Why? What is covered in DOAJ that AA wouldn't cover?
-Unfortunately, the above function returns journal names that look like \begin{verbatim}]CELLULARPHYSIOLOGYANDBIOCHEMISTRY \end{verbatim} or \begin{verbatim} EURASIPJOURNALONAUDIO,SPEECH,ANDMUSICPROCESSING. \end{verbatim}
-There is not an easy way to fix this issue and still preserve the integrity of the character string, which is important in this study because the journal names will be graphed for each discipline.
-Fortunately, the number of journals falling into issue three are very small, and can be returned into a new vector.
-By comparing the list of common journals that have been found only with trimmed space to the list of journals that have been found with both trimmed and deleted space, the remainder will be those that are on both lists, but are only on the list of journals with deleted space:
+
+Although deleting all whitespace solves the problem of identifying all common journals, it also returns journal names that look like: {\large \begin{verbatim}CULTUREUNBOUND:JOURNALOFCURRENTCULTURALRESEARCH \end{verbatim}}.
+Because journal names will be used to visualize publications for each department, this is not an acceptable solution; however, there is not an easy way to fix the issue and still preserve the integrity of the character string..
+Fortunately, the number of journals with this problem is very small, and they can be returned into a separate vector.
+By finding the intersection between matching journals on both the AA and the DOAJ lists \emph{without} spaces deleted and matching journals the AA and DOAJ list \emph{with} spaces deleted, the non-matching values will be those journals that \emph{are} on both lists, but that are not discoverable without first deleting spaces:
 \begin{figure}[htpb]
 	\centering
+	\caption{Get List of Journals With Unmatching Punctuation Values On AA \& DOAJ List}
 	\begin{lstlisting}
-	doaj.aa.trim <- intersect(doaj.list, aa.list) # 1,199 common journals after trimming whitespace
-	doaj.aa.trim.repl <- str_replace_all(doaj.aa.trim, pattern = " ", repl="") # delete ALL spaces on trimmed list list
-	all.repl <- doaj.aa.repl \%in\% doaj.aa.trim.repl # get all values in the deleted space list that are in the trimmed space list
-	missing <- doaj.aa.repl[!all.repl] # Number of journals that appear in both lists but have punctuation problems aside from leading/trailing whitespace
+	doaj.aa.punctuation <- function(doajlistdata, aalistdata) {
+	  # Delete all spaces in the above created DOAJ & AA Lists, and find the intersection.
+	  # Compare that intersection to an intersection of the lists with only leading/trailing whitespace trimmed
+	  # Get the journals from the first list only.
+	  # 
+	  # Args: The above created doaj.list.trim and aa.list
+	  #
+	  # Returns: A dataframe of journals that appear on both lists, but are not discoverable until all spaces are deleted
+	  
+	  #Get intersection of DOAJ trimmed list and AA list
+	  doaj.aa.trim <- intersect(doajlistdata$Title, aalistdata) # 1,199 common journals after trimming whitespace
+	  
+	  # Delete all spaces in both lists and get new intersection
+	  doaj.repl <- str_replace_all(doajlistdata$Title, pattern = " ", repl="") # delete ALL spaces on doaj list
+	  aa.repl <- str_replace_all(aalistdata, pattern = " ", repl="") # delete ALL spaces on aa list
+	  doaj.aa.repl <- intersect(doaj.repl, aa.repl) # 1,226 common journals after deleting all spaces
+	  
+	  # Create a vector of journals that appear in both lists but have punctuation problems aside from leading/trailing whitespace
+	  doaj.aa.trim.repl <- str_replace_all(doaj.aa.trim, pattern = " ", repl="") # delete ALL spaces on trimmed list list
+	  all.repl <- doaj.aa.repl %in% doaj.aa.trim.repl # get all values in the deleted space list that are in the trimmed space list
+	  missing <- doaj.aa.repl[!all.repl] # Number of journals that appear in both lists but have punctuation problems aside from leading/trailing whitespace
+	  missing <- as.data.frame(missing) # Convert from string to dataframe so merge will work
+	  missing$missing <- as.character(missing$missing) # Coerce the titles to characters
+	  names(missing) <- "Title"
+	  
+	  #Create final dataframe of missing journals and publishers
+	  #Need to first create doaj.list with spaces in the Title deleted to merge with the above list
+	  doaj.list.repl <- doajlistdata # get the already created list
+	  doaj.list.repl$Title <- str_replace_all(doaj.list.repl$Title, pattern = " ", repl="") # trim extra spaces on titles list
+	  missing <- merge(x = missing, y = doaj.list.repl, by.y="Title", by.x="Title", all.x = TRUE) # Merge the missing journals with their publishers
+	  names(missing) <- c("Title", "Publisher") #Rename columns
+	  return(missing)
+	}
+	missing <- doaj.aa.punctuation(doaj.list.trim, aa.list)
 	\end{lstlisting}
 	\footnotesize{
-		Return the intersection of the \textbf{doaj.list} and \textbf{aa.list}.
-		This vector does not account for those titles that have variation in spacing in the middle of the string--those items will be the false negatives that we are seeking to put into  a new vector.
-		It includes 1,199 values compared with the 1,226 titles when all spaces are deleted: a difference of 27.
-		Delete all spaces in that list, and return the vector to \textbf{doaj.aa.trim.repl}.
-		Compare the \textbf{doaj.aa.repl.} list, which is a complete list of common journals, to the above created list.
-		Those 27 journals that do not match are the journals with punctuation variations; put those into a new vector \textbf{missing}.
+		Use function \textit{str\_replace\_all} (from the \textit{stringr} package) to delete all spaces in both the AA and the DOAJ journal lists (specifically, replacing spaces with nothing). 
+		Return the intersection of the lists to character vector \textbf{doaj.aa.repl}.
+
 			}
-	\caption{Create vector of journals with spacing variations within the character string}
+
 \end{figure}
-A portion of the list is below, revealing the spacing differences that caused this problem:
-This vector will be used in the next step, when the comparison between UT Arlington publications in Academic Analytics is run against the DOAJ list. 
+This vector will then be used in the next step, when the comparison between UT Arlington publications in Academic Analytics is run against the DOAJ list. 
+
 \section{Open Access Publications by UT Arlington Faculty as Reported in Academic Analytics Data}
-The next step in the study is to download the publication data on UT Arlington faculty from Academic Analytics.
+The next step in the study is to download the publication data on UT Arlington faculty from Academic Analytics in order to determine the scope of open access publisher per department.
 Academic Analytics does not provide any information as to whether or not journals are open access. 
-AA does collect data on specific journals that individual faculty members publish in, as inferenced by their provision of "a \textit{numeric} tally of each faculty member’s total scholarly productivity in each of the five areas of scholarly research (journal articles, citations, books, research grants and honorific awards)" (emphasis mine); nonetheless, the micro-level data is not accessible. 
-However, it does provide publication data aggregated by academic department, through the "Department Articles Market Share" portal. 
-Academic Analytics does not provide an option to download a dataset of publication data for all of the 48 departments at UT Arlington, so each department's data was downloaded as a CSV and saved into the folder "Departments."
+AA does collect data on a micro (individual faculty member) level, as inferenced by their provision of "a \textit{numeric} tally of each faculty member’s total scholarly productivity in each of the five areas of scholarly research (journal articles, citations, books, research grants and honorific awards)" (emphasis mine); however, it does not make this micro-level data available. 
+Academic Analytics provides publication data aggregated by academic department, through the "Department Articles Market Share" portal, although it does not provide an option to download the total dataset of all publication data for all of the 48 departments at UT Arlington, so each department's data was downloaded as a CSV and saved into the folder "Departments."
 The filename was manually keyed and represents the academic department.
 The publication name is the primary key of these tables--it is the name of the journal in which researchers for that department have published.
-The only other variable that will be used in the current analysis is called "UnitArticles," which is the number of articles published in the specified journal by UT Arlington researchers, aggregated by unit (i.e. department) as opposed to discipline (e.g., science, social science).
+The other variables that will be used in the current analysis are:
+\begin{itemize}
+	\item \textbf{UnitArticles}: the number of articles published in the specified journal by UT Arlington researchers, aggregated by unit (i.e. department)
+	\item \textbf{Publisher}: the publisher of the journal
+\end{itemize}
 \subsection{Developing the List of Open Access Publications by UT Arlington Faculty}
 To ascertain the extent of open access publication, a function will loop through each file, comparing the journal string in the Academic Analytics data to the journal string in the Directory of Open Access Journals data.
 \begin{figure}[htpb]
